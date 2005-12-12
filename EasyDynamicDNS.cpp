@@ -323,7 +323,7 @@ BOOL LoadConfig(HKEY baseKey, DWORD id, DomainInfo& info)
 		in.cbData = 4000;
 		in.pbData = (BYTE*) LocalAlloc(LPTR, 4000);
 		if (RegQueryValueEx(subkey, _T("Password"), NULL, &type, (LPBYTE) in.pbData, &in.cbData) == ERROR_SUCCESS && type == REG_BINARY) {
-			if (!CryptUnprotectData(&in, NULL, NULL, NULL, NULL, 0, &out))
+			if (!CryptUnprotectData(&in, NULL, NULL, NULL, NULL, CRYPTPROTECT_LOCAL_MACHINE, &out))
 				rval = FALSE;
 			info.password = (TCHAR*) out.pbData;
 		}
@@ -384,7 +384,7 @@ BOOL AddConfig(HKEY baseKey, DWORD id, const DomainInfo& info)
 		in.pbData = (BYTE*) info.password.c_str();
 		out.pbData = 0;
 		out.cbData = 0;
-		if (!CryptProtectData(&in, NULL, NULL, NULL, NULL, 0, &out))
+		if (!CryptProtectData(&in, NULL, NULL, NULL, NULL, CRYPTPROTECT_LOCAL_MACHINE, &out))
 			rval = FALSE;
 		else if (RegSetValueEx(subkey, _T("Password"), 0, REG_BINARY, (LPBYTE) out.pbData, (DWORD) out.cbData) != ERROR_SUCCESS)
 			rval = FALSE;
@@ -600,23 +600,23 @@ BOOL Run()
 	HKEY key;
 	try {
 		int cnt = 0;
-		DnsUpdater poster;
-		poster.evLog = &log;
+		DnsUpdater updater;
+		updater.evLog = &log;
 		LONG result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("SYSTEM\\CurrentControlSet\\Services\\EasyDynamicDNS"), 0, KEY_READ, &key);
 		if (result == ERROR_SUCCESS) {
 			DWORD timeout = LoadTimeout(key);
-			poster.SetTimeout(timeout);
-			for (int i = 0; i < FP_MAXWAIT - 1; i++) {
+			updater.SetTimeout(timeout);
+			for (int i = 0; i < 100; i++) {
 				DomainInfo info;
 				if (LoadConfig(key, i, info) == TRUE) {
-					poster.Add(info);
+					updater.Add(info);
 					cnt++;
 				}
 			}
 			RegCloseKey(key);
 			if (cnt == 0)
 				throw _T("No configuration information found.");
-			poster.Run();
+			updater.Run();
 		}
 		else
 			throw _T("Unable to read configuration");			
@@ -644,7 +644,7 @@ void Usage()
 
 static SERVICE_STATUS EasyDynamicDNSServiceStatus;
 static SERVICE_STATUS_HANDLE EasyDynamicDNSServiceStatusHandle;
-static DnsUpdater* myPoster = 0;
+static DnsUpdater* myupdater = 0;
 static EventLog* myLog = 0;
 
 void EasyDynamicDNSCtrlHandler(DWORD Opcode) 
@@ -652,8 +652,8 @@ void EasyDynamicDNSCtrlHandler(DWORD Opcode)
 	switch(Opcode) 
 	{ 
 		case SERVICE_CONTROL_STOP: 
-			if (myPoster != 0)
-				myPoster->Stop();
+			if (myupdater != 0)
+				myupdater->Stop();
 
 			EasyDynamicDNSServiceStatus.dwWin32ExitCode = 0; 
 			EasyDynamicDNSServiceStatus.dwCurrentState  = SERVICE_STOPPED; 
@@ -722,19 +722,19 @@ void EasyDynamicDNSStart(DWORD argc, LPTSTR *argv)
  
 	try {
 		// get settings
-		DWORD timeout = 120 * 1000;
+		DWORD timeout = 1000 * 60 * 60 * 1;
 		HKEY key;
-		DnsUpdater poster;
+		DnsUpdater updater;
 		int cnt = 0;
-		poster.evLog = &log;
+		updater.evLog = &log;
 		LONG result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("SYSTEM\\CurrentControlSet\\Services\\EasyDynamicDNS"), 0, KEY_READ, &key);
 		if (result == ERROR_SUCCESS) {
 			DWORD timeout = LoadTimeout(key);
-			poster.SetTimeout(timeout);
-			for (int i = 0; i < FP_MAXWAIT - 1; i++) {
+			updater.SetTimeout(timeout);
+			for (int i = 0; i < 100; i++) {
 				DomainInfo info;
 				if (LoadConfig(key, i, info) == TRUE) {
-					poster.Add(info);
+					updater.Add(info);
 					cnt++;
 				}
 			}
@@ -747,7 +747,7 @@ void EasyDynamicDNSStart(DWORD argc, LPTSTR *argv)
 
 		log.LogEvent(EVENTLOG_INFORMATION_TYPE, "Service started");
 
-		poster.Run();
+		updater.Run();
 
 		log.LogEvent(EVENTLOG_INFORMATION_TYPE, "Service stopped");
 	}
@@ -756,7 +756,7 @@ void EasyDynamicDNSStart(DWORD argc, LPTSTR *argv)
 	}
 
 	myLog = 0;
-	myPoster = 0;
+	myupdater = 0;
 
     return; 
 } 

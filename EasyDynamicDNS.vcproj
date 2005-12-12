@@ -166,14 +166,17 @@
 				RelativePath=".\easydns.ico">
 			</File>
 			<File
-				RelativePath=".\EasyDynamicDNS.mc">
+				RelativePath=".\EasyDynamicDNS.rc">
+			</File>
+			<File
+				RelativePath=".\EasyDynamicDNSMsg.mc">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
 						Description="Compiling Messages"
 						CommandLine="mc EasyDynamicDNSMsg.mc"
-						Outputs="EasyDynamicDNSMsg.h;EasyDynamicDNSMsg.rc;MSG00001.bin"/>
+						Outputs="MSG00001.bin;EasyDynamicDNSMsg.h;EasyDynamicDNSMsg.rc"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32">
@@ -181,11 +184,8 @@
 						Name="VCCustomBuildTool"
 						Description="Compiling Messages"
 						CommandLine="mc EasyDynamicDNSMsg.mc"
-						Outputs="EasyDynamicDNSMsg.h;EasyDynamicDNSMsg.rc;MSG00001.bin"/>
+						Outputs="MSG00001.bin;EasyDynamicDNSMsg.h;EasyDynamicDNSMsg.rc"/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\EasyDynamicDNS.rc">
 			</File>
 		</Filter>
 		<File
